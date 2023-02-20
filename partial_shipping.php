@@ -570,7 +570,6 @@ class Partial_shipping extends \Module {
         $new_order = new Order($id_order_new);
 
         if (!Validate::isLoadedObject($old_order) || !Validate::isLoadedObject($new_order)) {
-            die('0');
             return false;
         }
 
@@ -589,7 +588,6 @@ class Partial_shipping extends \Module {
 
         if ($quantity_left <= 0) {
             if (!$order_detail->delete()) {
-                die('1');
                 return false;
             }
         } else {
@@ -598,7 +596,6 @@ class Partial_shipping extends \Module {
             $order_detail->total_price_tax_excl = self::f($order_detail->total_price_tax_excl - $product_price_tax_excl);
             $order_detail->product_weight = self::f($product_weight * $order_detail->product_quantity);
             if (!$order_detail->update()) {
-                die('2');
                 return false;
             }
             $order_detail->updateTaxAmount($old_order);
@@ -661,7 +658,6 @@ class Partial_shipping extends \Module {
                 }
             }
         } else {
-            die('3');
             return false;
         }
 

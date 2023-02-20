@@ -1,0 +1,38 @@
+<?php
+
+global $_MODULE;
+$_MODULE = array();
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_8819a63023748a7fe6ccb8211d6b68f1'] = 'Livraison partielle de commande';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_8271386b8576a04f642040e707a83a43'] = 'Créer une livraison partielle sur vos commandes';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_d6f47e627cb8b9186caa435aba1c32ae'] = 'Êtes-vous sûr de vouloir supprimer ce module ?';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_e64f47f0d28a0ae526e3776747b2279a'] = 'Veuillez sélectionner un état de commande pour le champ \"Nouvel état\"';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_bbbd574b47ae1cb5f2a74cf919b4ba6d'] = 'Veuillez sélectionner un état de commande pour le champ \"Satus de commande restant\"';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_3225a10b07f1580f10dee4abc3779e6c'] = 'Paramètres';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_8fc3f517aabd39216e7214408033eb0a'] = 'Envoyer un e-mail à votre client lorsque vous générez une livraison partielle.';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_b2b9ced98be83b5b9427d7990c19084e'] = 'Envoyer un e-mail au client';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_00d23a76e43b46dae9ec7aa9dcbebb32'] = 'Activé';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_b9f5c797ebbf55adccdd8539a65a0241'] = 'Désactivé';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_5635543aa03a4d0561f23c35ecc95a93'] = 'Nouvel état';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_63eb3122ae25322ab0e2ad2a7e1ff0fc'] = 'Veuillez sélectionner un état de commande';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_ef86b792a921a3817908cbc1e5ba98ff'] = 'Nouveau statut de la commande que vous voulez fractionner';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_cb7206c13c2d5911f98a10c95aed4d3a'] = 'Statut de la commande pour le reste';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_786707252a995f95a67eac751ce71bfb'] = 'Nouveau statut pour la commande restante';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_ed31ac950466fc7006dd872c0ab71106'] = 'Générer une facture pour chaque commande à fractionner';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_a94722fc4d012145ccf4ba47df6c390f'] = 'Si vous avez un site web B2B, vous devriez normalement créer une facture pour chaque commande.';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_ec2c854708ffcfeae9de6c810567f7ab'] = 'Afficher la gestion des livraisons partielles dans la commande même si celle-ci n\'est pas payée';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_5ea10a6e07062eca98ab91aa2008a558'] = 'Normalement vous pouvez créer une livraison partielle quand une commande est payée mais si vous souhaitez le faire même si celle ci n\'est pas payée, vous devez activer cette option';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_c9cc8cce247e49bae79f15173ce97354'] = 'Enregistrer';
+$_MODULE['<{partial_shipping}prestashop>admin_order_4e78449f3521785cb84c8d8f58f7b210'] = 'Gérer la livraison partielle';
+$_MODULE['<{partial_shipping}prestashop>admin_order_903dfb709d5af9dc34cb92ee5b231695'] = 'Cette commande a été partiellement expédiée';
+$_MODULE['<{partial_shipping}prestashop>admin_order_deb10517653c255364175796ace3553f'] = 'Produit';
+$_MODULE['<{partial_shipping}prestashop>admin_order_03ab340b3f99e03cff9e84314ead38c0'] = 'Qté';
+$_MODULE['<{partial_shipping}prestashop>admin_order_cc61945cbbf46721a053467c395c666f'] = 'Rémboursé';
+$_MODULE['<{partial_shipping}prestashop>admin_order_84d0fffcc3de3d643c6a4bc510741433'] = 'Qté expédiée';
+$_MODULE['<{partial_shipping}prestashop>admin_order_5e1ce9eb796081fea13e0d0dd3c3d76f'] = 'Référence : ';
+$_MODULE['<{partial_shipping}prestashop>admin_order_a9971a36ea6236b1577b27dba46775ed'] = 'Référence fournisseur : ';
+$_MODULE['<{partial_shipping}prestashop>admin_order_782678f4ba02feb3e9ecd51e902cd16b'] = 'Historique des remboursements';
+$_MODULE['<{partial_shipping}prestashop>admin_order_a59dfa688b2182563bfc189928a66965'] = '%1s - %2s';
+$_MODULE['<{partial_shipping}prestashop>admin_order_cb4092a7a33a8f5fe82fd556146d5490'] = 'Ne pas expédier ce produit';
+$_MODULE['<{partial_shipping}prestashop>admin_order_710ad3e49cccbce940e9e758e07dce93'] = 'Si vous choisissez de réaliser une livraison partielle, une nouvelle commande sera générée avec tous les produits non expédiés. Cette nouvelle commande sera associée à cette commande.';
+$_MODULE['<{partial_shipping}prestashop>admin_order_5068c162a60b5859f973f701333f45c5'] = 'Numéro de suivi';
+$_MODULE['<{partial_shipping}prestashop>admin_order_22917bdf61d34ce44afcd970753dbae7'] = 'Mettre à jour la livraison';
