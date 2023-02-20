@@ -1,4 +1,7 @@
 <?php
+
+require_once __DIR__.'/classes/PartialShippingOrder.php';
+
 class Partial_shipping extends \Module {
     function __construct()
     {
@@ -17,20 +20,21 @@ class Partial_shipping extends \Module {
 
     public function install()
     {
-        /*Configuration::updateValue('WIC_MULTISHIPPING_SEND_EMAIL', false);
-        Configuration::updateValue('WIC_MULTISHIPPING_ORDER_STATE', 4);
-        Configuration::updateValue('WIC_MULTISHIPPING_B_2_B', false);*/
-
         if (file_exists($this->getLocalPath().'sql/install.php')) {
             require_once($this->getLocalPath().'sql/install.php');
         }
 
+        Configuration::updateValue('PARTIALSHIPPING_ORDER_STATE', Configuration::get('PS_OS_SHIPPING'));
+        Configuration::updateValue('PARTIALSHIPPING_SEND_EMAIL', false);
+        Configuration::updateValue('PARTIALSHIPPING_GENERATE_INVOICE', false);
+
         return
             parent::install() &&
-            /*$this->registerHook('header') &&
-            $this->registerHook('backOfficeHeader') &&*/
+            /*$this->registerHook('header') && */
+            $this->registerHook('backOfficeHeader') &&
             $this->registerHook('displayAdminOrder') &&
-            $this->installOrderStates()
+            $this->installOrderStates() &&
+            Configuration::updateValue('PARTIALSHIPPING_REMAINING', Configuration::get('PARTIALSHIPPING_NEW_STATE'));
         ;
     }
 
@@ -57,16 +61,30 @@ class Partial_shipping extends \Module {
             return false;
         }
 
-        Configuration::updateValue('PARTIALSHIPPING_NEW_STATE', (int) $order_state->id);
-        Configuration::updateValue('PARTIALSHIPPING_NEW_STATE', (int) $order_state->id);
+        Configuration::updateValue('PARTIALSHIPPING_NEW_STATE', (int)$order_state->id);
+        Configuration::updateValue('PARTIALSHIPPING_NEW_STATE', (int)$order_state->id);
 
         return true;
     }
 
     public function getContent() {
         if (\Tools::isSubmit('submit'.$this->name.'Module')) {
-            /** TODO: form validation **/
+
+            if (!(int)Tools::getValue('PARTIALSHIPPING_ORDER_STATE')) {
+                $this->context->controller->errors[] = $this->l('Please select an order state for "New status" field');
+            }
+
+            if (!(int)Tools::getValue('PARTIALSHIPPING_REMAINING')) {
+                $this->context->controller->errors[] = $this->l('Please select an order state for "Remaining order satus" field');
+            }
+
             if (!count($this->context->controller->errors)) {
+                Configuration::updateValue('PARTIALSHIPPING_SEND_EMAIL', (bool)\Tools::getValue('PARTIALSHIPPING_SEND_EMAIL'));
+                Configuration::updateValue('PARTIALSHIPPING_ORDER_STATE', (int)\Tools::getValue('PARTIALSHIPPING_ORDER_STATE'));
+                Configuration::updateValue('PARTIALSHIPPING_REMAINING', (int)\Tools::getValue('PARTIALSHIPPING_REMAINING'));
+                Configuration::updateValue('PARTIALSHIPPING_GENERATE_INVOICE', (bool)\Tools::getValue('PARTIALSHIPPING_GENERATE_INVOICE'));
+                Configuration::updateValue('PARTIALSHIPPING_UNPAID', (bool)\Tools::getValue('PARTIALSHIPPING_UNPAID'));
+
                 $redirect_after = $this->context->link->getAdminLink('AdminModules', true);
                 $redirect_after .= '&conf=4&configure='.$this->name.'&module_name='.$this->name;
                 \Tools::redirectAdmin($redirect_after);
@@ -132,7 +150,7 @@ class Partial_shipping extends \Module {
                         [
                             'type' => 'select',
                             'name' => 'PARTIALSHIPPING_ORDER_STATE',
-                            'label' => $this->l('New satus:'),
+                            'label' => $this->l('New satus'),
                             'required' => true,
                             'options' => [
                                 'default' => ['value' => null, 'label' => $this->l('Please select an order state')],
@@ -140,12 +158,12 @@ class Partial_shipping extends \Module {
                                 'id' => 'id_order_state',
                                 'name' => 'name'
                             ],
-                            'desc' => $this->l('New status to order that you want to split.'),
+                            'desc' => $this->l('New status to order that you want to split'),
                         ],
                         [
                             'type' => 'select',
                             'name' => 'PARTIALSHIPPING_REMAINING',
-                            'label' => $this->l('Remaining order satus:'),
+                            'label' => $this->l('Remaining order satus'),
                             'required' => true,
                             'options' => [
                                 'default' => ['value' => null, 'label' => $this->l('Please select an order state')],
@@ -153,15 +171,15 @@ class Partial_shipping extends \Module {
                                 'id' => 'id_order_state',
                                 'name' => 'name'
                             ],
-                            'desc' => $this->l('New status to remaining order.'),
+                            'desc' => $this->l('New status to remaining order'),
                         ],
                         [
                             'type' => 'switch',
-                            'label' => $this->l('Generate an invoice for each order to split.'),
+                            'label' => $this->l('Generate an invoice for each order to split'),
                             'name' => 'PARTIALSHIPPING_GENERATE_INVOICE',
                             'is_bool' => true,
                             'class' => 't',
-                            'desc' => $this->l('If you have a B2B website normally you check create an invoice for each order.'),
+                            'desc' => $this->l('If you have a B2B website normally you check create an invoice for each order'),
                             'values' => [
                                 [
                                     'id' => 'active_on',
@@ -202,5 +220,455 @@ class Partial_shipping extends \Module {
                 ]
             ]
         ]);
+    }
+
+    public function hookDisplayAdminOrder($params)
+    {
+
+        $order = new Order((int) $params['id_order']);
+
+        /*$order_invoice = OrderInvoice::getInvoiceByNumber($order->invoice_number);
+
+        if (Validate::isLoadedObject($order_invoice)) {
+            if (Configuration::get('PARTIALSHIPPING_GENERATE_INVOICE')) {
+                $order_invoice->total_products = $order->total_products;
+                $order_invoice->total_products_wt = $order->total_products_wt;
+                $order_invoice->total_paid = $order->total_paid;
+                $order_invoice->total_paid_tax_incl = $order->total_paid_tax_incl;
+                $order_invoice->total_paid_tax_excl = $order->total_paid_tax_excl;
+                $order_invoice->total_paid_real = $order->total_paid_real;
+                $order_invoice->total_discounts_tax_incl = $order->total_discounts_tax_incl;
+                $order_invoice->total_discounts_tax_excl = $order->total_discounts_tax_excl;
+                $order_invoice->save();
+
+                $order_details = $order->getOrderDetailList();
+                foreach ($order_details as $order_detail) {
+                    $orderDetail = new OrderDetail($order_detail['id_order_detail']);
+                    if (Validate::isLoadedObject($orderDetail)) {
+                        if (!$orderDetail->id_order_invoice) {
+                            $orderDetail->id_order_invoice = $order_invoice->id;
+                            $orderDetail->save();
+                        }
+                    }
+                }
+            }
+        }*/
+
+        if (Validate::isLoadedObject($order)) {
+            $partial_shipping = PartialShippingOrder::getPartialShippingByOrderId($order->id);
+            $this->context->smarty->assign('partial_shipping', $partial_shipping);
+
+            if (!$order->hasBeenPaid() && !Configuration::get('PARTIALSHIPPING_UNPAID')) {
+                $this->context->smarty->assign('can_create_partial_shipping', false);
+            } else {
+                $products = $this->getProducts($order);
+                $global_quantity = 0;
+                foreach ($products as &$product) {
+                    $product['current_stock'] = StockAvailable::getQuantityAvailableByProduct(
+                        $product['product_id'],
+                        $product['product_attribute_id'],
+                        $product['id_shop']);
+
+                    $resume = OrderSlip::getProductSlipResume($product['id_order_detail']);
+                    $product['quantity_refundable'] = $product['product_quantity'] - $resume['product_quantity'];
+                    $product['refund_history'] = OrderSlip::getProductSlipDetail($product['id_order_detail']);
+                    $product['return_history'] = OrderReturn::getProductReturnDetail($product['id_order_detail']);
+
+                    // if the current stock requires a warning
+                    if ($product['id_warehouse'] != 0) {
+                        $warehouse = new Warehouse((int)$product['id_warehouse']);
+                        $product['warehouse_name'] = $warehouse->name;
+                    } else {
+                        $product['warehouse_name'] = '--';
+                    }
+                    $global_quantity += $product['quantity_refundable'];
+                }
+                $this->context->smarty->assign(
+                    array(
+                        'products' => $products,
+                        'order' => $order,
+                        'can_create_partial_shipping' => $global_quantity > 1,
+                        'form_action' => static::getCurrentUrl(),
+                    )
+                );
+            }
+            return $this->context->smarty->fetch($this->getLocalPath().'views/templates/hook/admin_order.tpl');
+        }
+    }
+
+    protected function getProducts($order)
+    {
+        $products = $order->getProducts();
+        foreach ($products as &$product) {
+            if ($product['image'] != null) {
+                $name = 'product_mini_'.(int) $product['product_id'].(isset($product['product_attribute_id']) ? '_'.(int) $product['product_attribute_id'] : '').'.jpg';
+                $product['image_tag'] = ImageManager::thumbnail(_PS_IMG_DIR_.'p/'.$product['image']->getExistingImgPath().'.jpg', $name, 45, 'jpg');
+                $product['image_size'] = file_exists(_PS_TMP_IMG_DIR_.$name) ? getimagesize(_PS_TMP_IMG_DIR_.$name) : false;
+            }
+        }
+        return $products;
+    }
+
+    private static function refreshCurrentUrl() {
+        Tools::redirectAdmin(static::getCurrentUrl());
+    }
+
+    private static function getCurrentUrl() {
+        return $_SERVER['REQUEST_URI'];
+    }
+
+    public function hookBackOfficeHeader()
+    {
+        if (Tools::isSubmit('submitPartialShipping')) {
+            $flash_bag = $this->context->controller->get('session')->getFlashBag();
+            $id_order = (int)Tools::getValue('id_order');
+
+            $order = new Order($id_order);
+            if (!Validate::isLoadedObject($order)) {
+                $flash_bag->add('error', 'Order not found');
+                static::refreshCurrentUrl();
+            }
+
+            $customer = new Customer($order->id_customer);
+            if (!Validate::isLoadedObject($customer)) {
+                $flash_bag->add('error', 'Customer not found');
+                static::refreshCurrentUrl();
+            }
+
+            $carrier = new Carrier((int)$order->id_carrier, $order->id_lang);
+            if (!Validate::isLoadedObject($carrier)) {
+                $flash_bag->add('error', 'Carrier not found');
+                static::refreshCurrentUrl();
+            }
+
+            $quantity_shipped = Tools::getValue('quantity_shipped');
+            $paid_real_tax_incl = $order->total_products_wt;
+            $paid_real_tax_excl = $order->total_products;
+            $id_order_new = null;
+
+            $global_quantity = array_sum($quantity_shipped);
+            if (!$global_quantity) {
+                $flash_bag->add('error', 'No product selected');
+                static::refreshCurrentUrl();
+            }
+
+            foreach ($quantity_shipped as $id_order_detail => $quantity) {
+                if ((int)$quantity <= 0) {
+                    continue;
+                }
+                $order_detail = new OrderDetail((int)$id_order_detail);
+                if (!Validate::isLoadedObject($order_detail)) {
+                    $flash_bag->add('error', 'Order detail not found');
+                    static::refreshCurrentUrl();
+                }
+
+                if ($order_detail->product_quantity - $order_detail->product_quantity_refunded >= (int)$quantity) {
+                    if (!$id_order_new) {
+                        $id_order_new = $this->duplicateOrder($id_order);
+                        if (!$id_order_new) {
+                            $flash_bag->add('error', 'Error while duplicating order');
+                            static::refreshCurrentUrl();
+                        }
+                    }
+                    if (!$this->deleteAndAddProduct($id_order, $id_order_new, $order_detail, (int)$quantity)) {
+                        $flash_bag->add('error', 'Error while adding product');
+                        static::refreshCurrentUrl();
+                    }
+                }
+                unset($order_detail);
+            }
+
+            $order = new Order($id_order);
+            if ($order->total_discounts) {
+                $order->total_discounts = round($order->total_discounts * $order->total_products_wt / $paid_real_tax_incl, 2);
+                $order->total_discounts_tax_incl = round($order->total_discounts_tax_incl * $order->total_products_wt / $paid_real_tax_incl, 2);
+                $order->total_discounts_tax_excl = round($order->total_discounts_tax_excl * $order->total_products / $paid_real_tax_excl, 2);
+                $order->total_paid_tax_incl = $order->total_products_wt + $order->total_shipping_tax_incl - $order->total_discounts_tax_incl;
+                $order->total_paid_tax_excl = $order->total_products + $order->total_shipping_tax_excl - $order->total_discounts_tax_excl;
+                $order->total_paid_real = $order->total_paid_tax_incl;
+                $order->total_paid = $order->total_paid_tax_incl;
+                $order->update();
+            }
+
+            $new_order = new Order($id_order_new);
+            if ($new_order->total_discounts) {
+                $new_order->total_discounts = $new_order->total_discounts - $order->total_discounts;
+                $new_order->total_discounts_tax_incl = $new_order->total_discounts_tax_incl - $order->total_discounts_tax_incl;
+                $new_order->total_discounts_tax_excl = $new_order->total_discounts_tax_excl - $order->total_discounts_tax_excl;
+                $new_order->total_paid_tax_incl = $new_order->total_products_wt + $new_order->total_shipping_tax_incl - $new_order->total_discounts_tax_incl;
+                $new_order->total_paid_tax_excl = $new_order->total_products + $new_order->total_shipping_tax_excl - $new_order->total_discounts_tax_excl;
+                $new_order->total_paid_real = $new_order->total_paid_tax_incl;
+                $new_order->total_paid = $new_order->total_paid_tax_incl;
+                $new_order->update();
+            }
+
+            $order_invoice = OrderInvoice::getInvoiceByNumber($new_order->invoice_number);
+            if (Validate::isLoadedObject($order_invoice) && Configuration::get('PARTIALSHIPPING_GENERATE_INVOICE')) {
+                $order_invoice->total_products = $new_order->total_products;
+                $order_invoice->total_products_wt = $new_order->total_products_wt;
+                $order_invoice->total_paid = $new_order->total_paid;
+                $order_invoice->total_paid_tax_incl = $new_order->total_paid_tax_incl;
+                $order_invoice->total_paid_tax_excl = $new_order->total_paid_tax_excl;
+                $order_invoice->total_paid_real = $new_order->total_paid_real;
+                $order_invoice->total_discounts_tax_incl = $new_order->total_discounts_tax_incl;
+                $order_invoice->total_discounts_tax_excl = $new_order->total_discounts_tax_excl;
+                $order_invoice->save();
+            }
+
+            if (Configuration::get('PARTIALSHIPPING_SEND_EMAIL')) {
+                $file_attachement = [];
+                $pdf = new PDF($order->getInvoicesCollection(), PDF::TEMPLATE_DELIVERY_SLIP, Context::getContext()->smarty);
+                $file_attachement[] = array(
+                    'content' => $pdf->render(false),
+                    'name' => 'BL_'.sprintf('%06d', $order->id).'.pdf',
+                    'mime' => 'application/pdf',
+                );
+
+                if(!@Mail::Send(
+                    $order->id_lang,
+                    'partial_shipping',
+                    Mail::l('You order was partialy shipped out', $order->id_lang),
+                    [
+                        '{shop_name}' => Configuration::get('PS_SHOP_NAME'),
+                        '{order_ref}' => $order->getUniqReference(),
+                    ],
+                    $customer->email,
+                    null,
+                    Configuration::get('PS_SHOP_EMAIL'),
+                    Configuration::get('PS_SHOP_NAME'),
+                    $file_attachement,
+                    null,
+                    dirname(__FILE__).'/mails/')
+                ) {
+                    $flash_bag->add('error', 'Error sending email');
+                    static::refreshCurrentUrl();
+                }
+            }
+
+            if (Tools::getValue('tracking_multishipping')) {
+                $id_order_carrier = (int)$order->getIdOrderCarrier();
+                $order_carrier = new OrderCarrier($id_order_carrier);
+                if (Validate::isloadedObject($order_carrier)) {
+                    $order->shipping_number = $order_carrier->tracking_number = Tools::getValue('tracking_multishipping');
+                    if ($order->update() && $order_carrier->update()) {
+                        $templateVars = array(
+                            '{followup}' => str_replace('@', $order->shipping_number, $carrier->url),
+                            '{firstname}' => $customer->firstname,
+                            '{lastname}' => $customer->lastname,
+                            '{id_order}' => $order->id,
+                            '{shipping_number}' => $order->shipping_number,
+                            '{order_name}' => $order->getUniqReference(),
+                        );
+
+                        if (@Mail::Send(
+                            (int)$order->id_lang,
+                            'in_transit',
+                            Mail::l('Package in transit', (int) $order->id_lang),
+                            $templateVars,
+                            $customer->email,
+                            $customer->firstname.' '.$customer->lastname,
+                            null, null, null, null,
+                            _PS_MAIL_DIR_,
+                            true,
+                            (int)$order->id_shop)
+                        ) {
+                            Hook::exec('actionAdminOrdersTrackingNumberUpdate', [
+                                'order' => $order,
+                                'customer' => $customer,
+                                'carrier' => $carrier
+                            ], null, false, true, false, $order->id_shop);
+                        } else {
+                            $flash_bag->add('error', 'An error occurred while sending an email to the customer.');
+                            static::refreshCurrentUrl();
+                        }
+                    }
+
+                    $order_state = new OrderState((int)Configuration::get('PARTIALSHIPPING_ORDER_STATE'));
+                    if (!Validate::isLoadedObject($order_state)) {
+                        $flash_bag->add('error', 'The new order status is invalid.');
+                        static::refreshCurrentUrl();
+                    } else {
+                        if ($order->current_state != $order_state->id) {
+                            $history = new OrderHistory();
+                            $history->id_order = $order->id;
+                            $history->id_employee = (int) $this->context->employee->id;
+                            $history->changeIdOrderState((int) $order_state->id, $order, !$order->hasInvoice());
+
+                            $template_vars = [];
+                            if ($history->id_order_state == Configuration::get('PS_OS_SHIPPING') && $order->shipping_number) {
+                                $template_vars = ['{followup}' => str_replace('@', $order->shipping_number, $carrier->url)];
+                            }
+
+                            if (!$history->addWithemail(true, $template_vars)) {
+                                $flash_bag->add('error', 'An error occurred while changing order status, or we were unable to send an email to the customer.');
+                                static::refreshCurrentUrl();
+                            }
+                        }
+                    }
+                } else {
+                    $flash_bag->add('error', 'The order carrier cannot be updated.');
+                    static::refreshCurrentUrl();
+                }
+            }
+
+            $partial_shipping = new PartialShippingOrder();
+            $partial_shipping->id_order_from = $id_order;
+            $partial_shipping->id_order = $id_order_new;
+
+            if (!$partial_shipping->add()) {
+                $flash_bag->add('error', 'Error saving partial shipping');
+                static::refreshCurrentUrl();
+            }
+
+            $flash_bag->add('success', 'Partial shipping saved');
+            static::refreshCurrentUrl();
+        }
+    }
+
+    private function duplicateOrder($id_order)
+    {
+        $order = new Order($id_order);
+        $order_add = $order;
+        unset($order_add->id);
+        $order_add->total_products = 0;
+        $order_add->total_products_wt = 0;
+        $order_add->total_paid = 0;
+        $order_add->total_paid_tax_incl = 0;
+        $order_add->total_paid_tax_excl = 0;
+        $order_add->total_paid_real = 0;
+        if (Configuration::get('PARTIALSHIPPING_GENERATE_INVOICE')) {
+            $order_add->invoice_number = 0;
+        }
+        $order_add->delivery_number = 0;
+        if (!$order_add->add()) {
+            return false;
+        }
+
+        $id_order_carrier = (int)$order->getIdOrderCarrier();
+        if ($id_order_carrier) {
+            $order_carrier = new OrderCarrier($id_order_carrier);
+            if (Validate::isLoadedObject($order_carrier)) {
+                $order_carrier_add = $order_carrier;
+                $order_carrier_add->id_order_carrier = '';
+                $order_carrier_add->id_order = $order_add->id;
+                $order_carrier_add->id_order_invoice = 0;
+                $order_carrier_add->shipping_cost_tax_excl = 0;
+                $order_carrier_add->shipping_cost_tax_incl = 0;
+                $order_carrier_add->tracking_number = 0;
+                if (!$order_carrier_add->add()) {
+                    return false;
+                }
+            }
+        }
+
+        return $order_add->id;
+    }
+
+    protected function deleteAndAddProduct($id_order, $id_order_new, $order_detail, $quantity)
+    {
+        $old_order = new Order($id_order);
+        $new_order = new Order($id_order_new);
+
+        if (!Validate::isLoadedObject($old_order) || !Validate::isLoadedObject($new_order)) {
+            die('0');
+            return false;
+        }
+
+        $quantity_left = self::f(($order_detail->product_quantity - $order_detail->product_quantity_refunded) - $quantity);
+        $product_price_tax_excl = self::f($order_detail->unit_price_tax_excl * $quantity);
+        $product_price_tax_incl = self::f($order_detail->unit_price_tax_incl * $quantity);
+        $product_weight = self::f($order_detail->product_weight ? $order_detail->product_weight / $order_detail->product_quantity : 0);
+
+        /* Update order */
+        $old_order->total_products = self::f($old_order->total_products - $product_price_tax_excl);
+        $old_order->total_products_wt = self::f($old_order->total_products_wt - $product_price_tax_incl);
+        $old_order->total_paid = self::f($old_order->total_paid - $product_price_tax_incl);
+        $old_order->total_paid_tax_incl = self::f($old_order->total_paid_tax_incl - $product_price_tax_incl);
+        $old_order->total_paid_tax_excl = self::f($old_order->total_paid_tax_excl - $product_price_tax_excl);
+        $old_order->total_paid_real = self::f($old_order->total_paid_real - $product_price_tax_incl);
+
+        if ($quantity_left <= 0) {
+            if (!$order_detail->delete()) {
+                die('1');
+                return false;
+            }
+        } else {
+            $order_detail->product_quantity = self::f($order_detail->product_quantity - (int)$quantity);
+            $order_detail->total_price_tax_incl = self::f($order_detail->total_price_tax_incl - $product_price_tax_incl);
+            $order_detail->total_price_tax_excl = self::f($order_detail->total_price_tax_excl - $product_price_tax_excl);
+            $order_detail->product_weight = self::f($product_weight * $order_detail->product_quantity);
+            if (!$order_detail->update()) {
+                die('2');
+                return false;
+            }
+            $order_detail->updateTaxAmount($old_order);
+        }
+
+        if ($old_order->update()) {
+            $new_order->total_products = self::f($new_order->total_products + $product_price_tax_excl);
+            $new_order->total_products_wt = self::f($new_order->total_products_wt + $product_price_tax_incl);
+            $new_order->total_paid = self::f($new_order->total_paid + $product_price_tax_incl);
+            $new_order->total_paid_tax_incl = self::f($new_order->total_paid_tax_incl + $product_price_tax_incl);
+            $new_order->total_paid_tax_excl = self::f($new_order->total_paid_tax_excl + $product_price_tax_excl);
+            $new_order->total_paid_real = self::f($new_order->total_paid_real + $product_price_tax_incl);
+            $new_order->total_shipping_tax_incl = 0;
+            $new_order->total_shipping_tax_excl = 0;
+            $new_order->total_shipping = 0;
+
+            $order_invoice = OrderInvoice::getInvoiceByNumber($new_order->invoice_number);
+            /* If no B2B mode we create invoice information */
+            if (!Configuration::get('PARTIALSHIPPING_GENERATE_INVOICE') && Validate::isLoadedObject($order_invoice)) {
+                $id_order_invoice = Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue('
+                    SELECT `id_order_invoice`
+                    FROM `'._DB_PREFIX_.'order_invoice`
+                    WHERE id_order = '.(int)$new_order->id
+                );
+                $new_order_invoice = $order_invoice;
+                $new_order_invoice->id = $id_order_invoice ?: '';
+                $new_order_invoice->id_order = $new_order->id;
+                $new_order_invoice->total_paid_tax_incl = 0;
+                $new_order_invoice->total_paid_tax_excl = 0;
+                $new_order_invoice->number = $new_order->invoice_number;
+                $new_order_invoice->delivery_number = 0;
+                if ($new_order_invoice->save()) {
+                    Db::getInstance()->update('order_invoice', ['date_add' => pSQL($order_invoice->date_add)], '`id_order_invoice` = '.$new_order_invoice->id, 1);
+                }
+            }
+
+            if (!isset($new_order_invoice) && Validate::isLoadedObject($order_invoice)) {
+                $new_order_invoice = $order_invoice;
+            }
+
+            $new_order_detail = $order_detail;
+            unset($new_order_detail->id, $new_order_detail->id_order_detail);
+            $new_order_detail->id_order = (int)$new_order->id;
+            $new_order_detail->id_order_invoice = $new_order_invoice->id ?? '';
+            $new_order_detail->product_quantity = (int)$quantity;
+            $new_order_detail->total_price_tax_incl = $product_price_tax_incl;
+            $new_order_detail->total_price_tax_excl = $product_price_tax_excl;
+            $new_order_detail->total_shipping_price_tax_incl = 0;
+            $new_order_detail->total_shipping_price_tax_excl = 0;
+            $new_order_detail->product_weight = $product_weight * $new_order_detail->product_quantity;
+
+            if ($new_order_detail->add() && $new_order->update()) {
+                $new_order_detail->updateTaxAmount($new_order);
+                $history = new OrderHistory();
+                $history->id_order = $new_order->id;
+                $history->id_employee = (int)$this->context->employee->id;
+                if ($new_order->current_state != (int)Configuration::get('PARTIALSHIPPING_REMAINING')) {
+                    $history->changeIdOrderState(Configuration::get('PARTIALSHIPPING_REMAINING'), $new_order, false);
+                    $history->add();
+                }
+            }
+        } else {
+            die('3');
+            return false;
+        }
+
+        return true;
+    }
+
+    private static function f($amount) {
+        return max(Tools::ps_round($amount, 2), 0);
     }
 }
