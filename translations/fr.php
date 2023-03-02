@@ -27,7 +27,7 @@ $_MODULE['<{partial_shipping}prestashop>admin_order_903dfb709d5af9dc34cb92ee5b23
 $_MODULE['<{partial_shipping}prestashop>admin_order_deb10517653c255364175796ace3553f'] = 'Produit';
 $_MODULE['<{partial_shipping}prestashop>admin_order_03ab340b3f99e03cff9e84314ead38c0'] = 'Qté';
 $_MODULE['<{partial_shipping}prestashop>admin_order_cc61945cbbf46721a053467c395c666f'] = 'Rémboursé';
-$_MODULE['<{partial_shipping}prestashop>admin_order_84d0fffcc3de3d643c6a4bc510741433'] = 'Qté expédiée';
+$_MODULE['<{partial_shipping}prestashop>admin_order_fabdec01e5542bd1af0c6f4198329c4c'] = 'Qté expédiée aujourd\'hui';
 $_MODULE['<{partial_shipping}prestashop>admin_order_5e1ce9eb796081fea13e0d0dd3c3d76f'] = 'Référence : ';
 $_MODULE['<{partial_shipping}prestashop>admin_order_a9971a36ea6236b1577b27dba46775ed'] = 'Référence fournisseur : ';
 $_MODULE['<{partial_shipping}prestashop>admin_order_782678f4ba02feb3e9ecd51e902cd16b'] = 'Historique des remboursements';
@@ -35,4 +35,5 @@ $_MODULE['<{partial_shipping}prestashop>admin_order_a59dfa688b2182563bfc189928a6
 $_MODULE['<{partial_shipping}prestashop>admin_order_cb4092a7a33a8f5fe82fd556146d5490'] = 'Ne pas expédier ce produit';
 $_MODULE['<{partial_shipping}prestashop>admin_order_710ad3e49cccbce940e9e758e07dce93'] = 'Si vous choisissez de réaliser une livraison partielle, une nouvelle commande sera générée avec tous les produits non expédiés. Cette nouvelle commande sera associée à cette commande.';
 $_MODULE['<{partial_shipping}prestashop>admin_order_5068c162a60b5859f973f701333f45c5'] = 'Numéro de suivi';
+$_MODULE['<{partial_shipping}prestashop>admin_order_c2e762bcf0604526aa3d9191044192c8'] = 'Ce champs n\'est pas obligatoire, vous pouvez expédier des produits sans numéro de suivi.';
 $_MODULE['<{partial_shipping}prestashop>admin_order_22917bdf61d34ce44afcd970753dbae7'] = 'Mettre à jour la livraison';

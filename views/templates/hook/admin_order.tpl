@@ -27,7 +27,7 @@
                             <th>{l s='Product' mod='partial_shipping'}</th>
                             <th class="text-center">{l s='Qty' mod='partial_shipping'}</th>
                             {if ($order->hasBeenPaid())}<th class="text-center">{l s='Refunded' mod='partial_shipping'}</th>{/if}
-                            <th class="text-center">{l s='Qty shipped' mod='partial_shipping'}</th>
+                            <th class="text-center">{l s='Qty shipped today' mod='partial_shipping'}</th>
                             <th></th>
                         </tr>
                         </thead>
@@ -77,19 +77,20 @@
                         {/foreach}
                         </tbody>
                     </table>
-                    <div class="row align-items-center mb-3">
+                    <div class="row mb-3">
                         <div class="col">
                             <div class="alert alert-warning mb-0">
                                 {l s='If you choose multishipping option we create a new order with all product no shipped. This new order is associated to this order.' mod='partial_shipping'}
                             </div>
                         </div>
                         <div class="col">
-                            <div class="input-group">
+                            <div class="form-group">
                                 <input type="text" class="form-control" placeholder="{l s='Tracking number' mod='partial_shipping'}" name="tracking_partial_shipping">
-                                <div class="input-group-append">
-                                    <button class="btn btn-primary" name="submitPartialShipping" type="submit">{l s='Update shipping' mod='partial_shipping'}</button>
-                                </div>
+                                <small class="form-text text-muted">{l s='This field is not mandatory, you can ship products without tracking number.' mod='partial_shipping'}</small>
                             </div>
+                        </div>
+                        <div class="col col-auto">
+                            <button class="btn btn-primary" name="submitPartialShipping" type="submit">{l s='Update shipping' mod='partial_shipping'}</button>
                         </div>
                     </div>
                 </form>
