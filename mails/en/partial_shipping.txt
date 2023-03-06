@@ -1,0 +1,16 @@
+Hi {firstname} {lastname},
+
+Thank you for your order on {shop_name}!
+
+When you placed the order, one or some of your products where announced with a shipping time, which means that they are currently not available.
+Please find below the concerned product(s):
+
+{missing_products_txt}
+
+Given that the shipping time announced on our website may vary by a few days, we took the initiative of splitting
+your order into two separate ones, so that we can send you in a first parcel all the products that are currently in stock.
+Please find in the attached document the list of the products that will be shipped in the first parcel.
+As for the product(s) that are not available at the moment, they will be sent out later once they will be back in stock.
+
+You will receive an email with the tracking of the shipment as soon as each parcel will be ready to leave our warehouse.
+Kindest regards.

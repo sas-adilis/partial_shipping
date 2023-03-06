@@ -1,4 +1,10 @@
+{if isset($option_partial)}
+    {literal}<script type="text/javascript">
+        window.open("{/literal}{$option_partial}{literal}");
+    </script>{/literal}
+{/if}
 {if $can_create_partial_shipping || $partial_shipping}
+    {if $partial_shipping}</div>{/if}
     <div class="card mt-2">
         <div class="card-header">
             <div class="row align-items-center justify-content-between">

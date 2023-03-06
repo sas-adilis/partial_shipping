@@ -1,0 +1,16 @@
+Bonjour {firstname} {lastname},
+
+Merci d'avoir effectué vos achats sur {shop_name}!
+
+Nous indiquions sur notre site qu’un ou plusieurs des éléments de votre commande nécessitaient un délai d'expédition.
+Veuillez trouver le(s) produit(s) concerné(s) ci-dessous :
+
+{missing_products_txt}
+
+Etant donné que le délai annoncé sur notre site peut varier de quelques jours,
+nous avons pris l’initiative de scinder votre commande en deux afin d’expédier dans un premier temps les produits
+qui sont actuellement en stock. En pièce jointe, vous trouverez la liste des produits qui seront expédiés dans le premier colis.
+Le ou les autres produits manquants seront expédiés dès réception de notre réapprovisionnement.
+
+Un mail avec le numéro de suivi de chaque colis vous sera envoyé une fois que chaque commande sera expédiée.
+En vous souhaitant bonne réception,

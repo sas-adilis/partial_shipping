@@ -22,6 +22,7 @@ $_MODULE['<{partial_shipping}prestashop>partial_shipping_a94722fc4d012145ccf4ba4
 $_MODULE['<{partial_shipping}prestashop>partial_shipping_ec2c854708ffcfeae9de6c810567f7ab'] = 'Afficher la gestion des livraisons partielles dans la commande même si celle-ci n\'est pas payée';
 $_MODULE['<{partial_shipping}prestashop>partial_shipping_5ea10a6e07062eca98ab91aa2008a558'] = 'Normalement vous pouvez créer une livraison partielle quand une commande est payée mais si vous souhaitez le faire même si celle ci n\'est pas payée, vous devez activer cette option';
 $_MODULE['<{partial_shipping}prestashop>partial_shipping_c9cc8cce247e49bae79f15173ce97354'] = 'Enregistrer';
+$_MODULE['<{partial_shipping}prestashop>partial_shipping_1dd5e0ed9b3db64272aced4e5e257939'] = 'Votre commande a été partiellement expédiée';
 $_MODULE['<{partial_shipping}prestashop>admin_order_4e78449f3521785cb84c8d8f58f7b210'] = 'Gérer la livraison partielle';
 $_MODULE['<{partial_shipping}prestashop>admin_order_903dfb709d5af9dc34cb92ee5b231695'] = 'Cette commande a été partiellement expédiée';
 $_MODULE['<{partial_shipping}prestashop>admin_order_deb10517653c255364175796ace3553f'] = 'Produit';

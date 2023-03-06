@@ -10,7 +10,7 @@ class Partial_shipping extends \Module {
         $this->need_instance = 0;
         $this->bootstrap = true;
         $this->tab = 'shipping_logistics';
-        $this->version = '1.0.0';
+        $this->version = '1.1.0';
         $this->displayName = $this->l('Order partial delivery');
         $this->description = $this->l('Create partial delivery to order');
         $this->confirmUninstall = $this->l('Are you sure you want to delete this module ?');
@@ -66,6 +66,8 @@ class Partial_shipping extends \Module {
 
         return true;
     }
+
+
 
     public function getContent() {
         if (\Tools::isSubmit('submit'.$this->name.'Module')) {
@@ -228,7 +230,6 @@ class Partial_shipping extends \Module {
         $order = new Order((int) $params['id_order']);
 
         /*$order_invoice = OrderInvoice::getInvoiceByNumber($order->invoice_number);
-
         if (Validate::isLoadedObject($order_invoice)) {
             if (Configuration::get('PARTIALSHIPPING_GENERATE_INVOICE')) {
                 $order_invoice->total_products = $order->total_products;
@@ -291,6 +292,15 @@ class Partial_shipping extends \Module {
                         'form_action' => static::getCurrentUrl(),
                     )
                 );
+
+                $id_order_open = (int)Tools::getValue('open_partial');
+                if ($id_order_open) {
+                    $open_partial = Context::getContext()->link->getAdminLink('AdminOrders', true, array(
+                        'route' => 'admin_orders_view',
+                        'orderId' => $id_order_open,
+                    ));
+                    $this->context->smarty->assign('open_partial', $open_partial);
+                }
             }
             return $this->context->smarty->fetch($this->getLocalPath().'views/templates/hook/admin_order.tpl');
         }
@@ -309,8 +319,8 @@ class Partial_shipping extends \Module {
         return $products;
     }
 
-    private static function refreshCurrentUrl() {
-        Tools::redirectAdmin(static::getCurrentUrl());
+    private static function refreshCurrentUrl($extra_params = array()) {
+        Tools::redirectAdmin(static::getCurrentUrl().(count($extra_params) > 0 ? '&'.http_build_query($extra_params) : ''));
     }
 
     private static function getCurrentUrl() {
@@ -352,29 +362,26 @@ class Partial_shipping extends \Module {
                 static::refreshCurrentUrl();
             }
 
-            foreach ($quantity_shipped as $id_order_detail => $quantity) {
-                if ((int)$quantity <= 0) {
-                    continue;
-                }
+            foreach ($quantity_shipped as $id_order_detail => $quantity_to_ship) {
+
                 $order_detail = new OrderDetail((int)$id_order_detail);
                 if (!Validate::isLoadedObject($order_detail)) {
                     $flash_bag->add('error', 'Order detail not found');
                     static::refreshCurrentUrl();
                 }
 
-                if ($order_detail->product_quantity - $order_detail->product_quantity_refunded >= (int)$quantity) {
+                if (!$id_order_new) {
+                    $id_order_new = $this->duplicateOrder($id_order);
                     if (!$id_order_new) {
-                        $id_order_new = $this->duplicateOrder($id_order);
-                        if (!$id_order_new) {
-                            $flash_bag->add('error', 'Error while duplicating order');
-                            static::refreshCurrentUrl();
-                        }
-                    }
-                    if (!$this->deleteAndAddProduct($id_order, $id_order_new, $order_detail, (int)$quantity)) {
-                        $flash_bag->add('error', 'Error while adding product');
+                        $flash_bag->add('error', 'Error while duplicating order');
                         static::refreshCurrentUrl();
                     }
                 }
+                if (!$this->deleteAndAddProduct($id_order, $id_order_new, $order_detail, (int)$quantity_to_ship)) {
+                    $flash_bag->add('error', 'Error while adding product');
+                    static::refreshCurrentUrl();
+                }
+
                 unset($order_detail);
             }
 
@@ -424,13 +431,37 @@ class Partial_shipping extends \Module {
                     'mime' => 'application/pdf',
                 );
 
+                $shipped_products = $order->getProducts();
+                $missing_products = $new_order->getProducts();
+
+                foreach ($shipped_products as $k => $shipped_product) {
+                    $id_image = self::getImageId((int)$shipped_product['product_id'], (int)$shipped_product['product_attribute_id']);
+                    $shipped_products[$k]['image'] = $id_image > 0 ? $this->context->link->getImageLink($id_image, $id_image, 'small_default') : null;
+                }
+                foreach ($missing_products as $k => $missing_product) {
+                    $id_image = self::getImageId((int)$missing_product['product_id'], (int)$missing_product['product_attribute_id']);
+                    $missing_products[$k]['image'] = $id_image > 0 ? $this->context->link->getImageLink($id_image, $id_image, 'small_default') : null;
+                }
+
+                $shipped_products_txt = $this->getEmailTemplateContent('product_list_txt.tpl', $shipped_products);
+                $shipped_products_html = $this->getEmailTemplateContent('product_list_html.tpl', $shipped_products);
+                $missing_products_txt = $this->getEmailTemplateContent('product_list_txt.tpl', $missing_products);
+                $missing_products_html = $this->getEmailTemplateContent('product_list_html.tpl', $missing_products);
+                $iso_code = Language::getIsoById((int)$order->id_lang);
+
                 if(!@Mail::Send(
                     $order->id_lang,
                     'partial_shipping',
-                    Mail::l('You order was partialy shipped out', $order->id_lang),
+                    $this->l('You order was partially shipped out', false, $iso_code),
                     [
+                        '{lastname}' => $customer->lastname,
+                        '{firstname}' => $customer->firstname,
                         '{shop_name}' => Configuration::get('PS_SHOP_NAME'),
                         '{order_ref}' => $order->getUniqReference(),
+                        '{shipped_products}' => $shipped_products_html,
+                        '{shipped_products_txt}' => $shipped_products_txt,
+                        '{missing_products}' => $missing_products_html,
+                        '{missing_products_txt}' => $missing_products_txt,
                     ],
                     $customer->email,
                     null,
@@ -521,7 +552,7 @@ class Partial_shipping extends \Module {
             }
 
             $flash_bag->add('success', 'Partial shipping saved');
-            static::refreshCurrentUrl();
+            static::refreshCurrentUrl(['open_partial' => $id_order_new]);
         }
     }
 
@@ -564,7 +595,7 @@ class Partial_shipping extends \Module {
         return $order_add->id;
     }
 
-    protected function deleteAndAddProduct($id_order, $id_order_new, $order_detail, $quantity)
+    protected function deleteAndAddProduct($id_order, $id_order_new, $order_detail, $quantity_to_ship)
     {
         $old_order = new Order($id_order);
         $new_order = new Order($id_order_new);
@@ -573,9 +604,13 @@ class Partial_shipping extends \Module {
             return false;
         }
 
-        $quantity_left = self::f(($order_detail->product_quantity - $order_detail->product_quantity_refunded) - $quantity);
-        $product_price_tax_excl = self::f($order_detail->unit_price_tax_excl * $quantity);
-        $product_price_tax_incl = self::f($order_detail->unit_price_tax_incl * $quantity);
+        if ($quantity_to_ship >= $order_detail->product_quantity - $order_detail->product_quantity_refunded) {
+            return true;
+        }
+
+        $quantity_to_move = self::f(($order_detail->product_quantity - $order_detail->product_quantity_refunded) - $quantity_to_ship);
+        $product_price_tax_excl = self::f($order_detail->unit_price_tax_excl * $quantity_to_move);
+        $product_price_tax_incl = self::f($order_detail->unit_price_tax_incl * $quantity_to_move);
         $product_weight = self::f($order_detail->product_weight ? $order_detail->product_weight / $order_detail->product_quantity : 0);
 
         /* Update order */
@@ -586,12 +621,12 @@ class Partial_shipping extends \Module {
         $old_order->total_paid_tax_excl = self::f($old_order->total_paid_tax_excl - $product_price_tax_excl);
         $old_order->total_paid_real = self::f($old_order->total_paid_real - $product_price_tax_incl);
 
-        if ($quantity_left <= 0) {
+        if ($quantity_to_ship <= 0) {
             if (!$order_detail->delete()) {
                 return false;
             }
         } else {
-            $order_detail->product_quantity = self::f($order_detail->product_quantity - (int)$quantity);
+            $order_detail->product_quantity = self::f($order_detail->product_quantity - (int)$quantity_to_move);
             $order_detail->total_price_tax_incl = self::f($order_detail->total_price_tax_incl - $product_price_tax_incl);
             $order_detail->total_price_tax_excl = self::f($order_detail->total_price_tax_excl - $product_price_tax_excl);
             $order_detail->product_weight = self::f($product_weight * $order_detail->product_quantity);
@@ -640,7 +675,7 @@ class Partial_shipping extends \Module {
             unset($new_order_detail->id, $new_order_detail->id_order_detail);
             $new_order_detail->id_order = (int)$new_order->id;
             $new_order_detail->id_order_invoice = $new_order_invoice->id ?? '';
-            $new_order_detail->product_quantity = (int)$quantity;
+            $new_order_detail->product_quantity = (int)$quantity_to_move;
             $new_order_detail->total_price_tax_incl = $product_price_tax_incl;
             $new_order_detail->total_price_tax_excl = $product_price_tax_excl;
             $new_order_detail->total_shipping_price_tax_incl = 0;
@@ -666,5 +701,42 @@ class Partial_shipping extends \Module {
 
     private static function f($amount) {
         return max(Tools::ps_round($amount, 2), 0);
+    }
+
+    private function getEmailTemplateContent(string $template, $products)
+    {
+        $this->context->smarty->assign('list', $products);
+        return $this->context->smarty->fetch($this->getLocalPath().'mails/_partials/'.$template);
+    }
+
+    private static function getImageId(int $id_product, int $id_product_attribute = 0) {
+        $context = Context::getContext();
+        $cache_id = 'Partial_shipping::getImageId' . $id_product . '-' . $id_product_attribute . '-' . (int) $context->shop->id;
+        if (!Cache::isStored($cache_id)) {
+            $id_image = 0;
+            if ((int)$id_product_attribute) {
+                $id_image = Db::getInstance()->getValue('
+					SELECT image_shop.`id_image` id_image
+					FROM `' . _DB_PREFIX_ . 'image` i
+					INNER JOIN `' . _DB_PREFIX_ . 'image_shop` image_shop
+						ON (i.id_image = image_shop.id_image AND image_shop.id_shop = ' . (int) $context->shop->id . ')
+						INNER JOIN `' . _DB_PREFIX_ . 'product_attribute_image` pai
+						ON (pai.`id_image` = i.`id_image` AND pai.`id_product_attribute` = ' . $id_product_attribute . ')
+					WHERE i.`id_product` = ' . $id_product . ' ORDER BY i.`position` ASC
+				');
+            }
+            if (!$id_image) {
+                $id_image = (int)Db::getInstance()->getValue('SELECT image_shop.`id_image`
+                    FROM `' . _DB_PREFIX_ . 'image` i
+                    ' . Shop::addSqlAssociation('image', 'i') . '
+                    WHERE i.`id_product` = ' . $id_product . '
+                    AND image_shop.`cover` = 1'
+                );
+            }
+            Cache::store($cache_id, $id_image);
+            return $id_image;
+        }
+
+        return Cache::retrieve($cache_id);
     }
 }
